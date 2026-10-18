@@ -100,7 +100,10 @@ public class ExportPlanImageHandler implements CommandHandler, CommandDescriptor
             // filePath mode: save to disk and return metadata without base64
             String filePath = request.getString("filePath");
             if (filePath != null && !filePath.trim().isEmpty()) {
-                Path path = PathValidator.validateAndNormalize(filePath, ".png");
+                // A .jpg/.jpeg name becomes .png instead of growing a second extension
+                Path path = PathValidator.replaceExtension(
+                        PathValidator.normalizeOnly(filePath), ".png", ".jpg", ".jpeg");
+                path = PathValidator.validateAndNormalize(path.toString(), ".png");
                 ImageIO.write(image, "png", path.toFile());
 
                 Map<String, Object> data = new LinkedHashMap<>();

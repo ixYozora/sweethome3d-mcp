@@ -31,6 +31,8 @@ import java.io.File;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
 import com.sh3d.mcp.command.util.SchemaBuilder;
 
 import static com.sh3d.mcp.command.util.FormatUtil.round2;
@@ -38,10 +40,14 @@ import static com.sh3d.mcp.command.util.SchemaUtil.enumProp;
 
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -81,6 +87,27 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
 
     private final SceneBoundsCalculator boundsCalculator = new SceneBoundsCalculator();
     private final OverheadCameraComputer cameraComputer = new OverheadCameraComputer();
+    private final RenderJobRunner runner;
+
+    /**
+     * How long a call waits for its render before answering with the file paths the render
+     * will write. Below the 60 s many MCP clients allow a tool call.
+     */
+    static final long DEFAULT_RESPONSE_BUDGET_MS = 45_000;
+
+    public RenderPhotoHandler() {
+        this(DEFAULT_RESPONSE_BUDGET_MS);
+    }
+
+    /** @param responseBudgetMs how long to wait for a render before answering "rendering" */
+    RenderPhotoHandler(long responseBudgetMs) {
+        this(new RenderJobRunner(responseBudgetMs));
+    }
+
+    /** For tests: render through {@code runner}. */
+    RenderPhotoHandler(RenderJobRunner runner) {
+        this.runner = runner;
+    }
 
     /** Default image width in pixels for standard and inline overhead modes. */
     private static final int DEFAULT_WIDTH = 800;
@@ -205,25 +232,33 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
         });
 
         boolean supersample = "medium".equals(qualityStr);
-        try {
-            Home renderHome = accessor.runOnEDT(() -> accessor.getHome().clone());
-            Map<String, Object> data = renderSingleImage(renderHome, camera,
-                    width, height, quality, filePath, format, supersample);
-            data.put("quality", qualityStr);
+        boolean hasFilePath = filePath != null && !filePath.trim().isEmpty();
+        List<Path> targets = hasFilePath
+                ? Collections.singletonList(resolveImagePath(filePath, format))
+                : fallbackPaths(1, format);
+        final String finalFormat = format;
+        final String finalQuality = qualityStr;
+        return runner.run(() -> {
+            try {
+                Home renderHome = accessor.runOnEDT(() -> accessor.getHome().clone());
+                Map<String, Object> data = renderSingleImage(renderHome, camera,
+                        width, height, quality, filePath, finalFormat, supersample);
+                data.put("quality", finalQuality);
 
-            LOG.info("Rendered photo " + width + "x" + height + " (" + qualityStr
-                    + "), size=" + data.get("size_bytes") + " bytes"
-                    + (filePath != null ? ", saved to " + filePath : ""));
+                LOG.info("Rendered photo " + width + "x" + height + " (" + finalQuality
+                        + "), size=" + data.get("size_bytes") + " bytes"
+                        + (filePath != null ? ", saved to " + filePath : ""));
 
-            return Response.ok(data);
-        } catch (OutOfMemoryError e) {
-            LOG.log(Level.SEVERE, "OOM during render", e);
-            return Response.error("Out of memory: reduce image dimensions (current: "
-                    + width + "x" + height + ")");
-        } catch (Exception e) {
-            LOG.log(Level.WARNING, "Render failed", e);
-            return Response.error("Rendering failed: " + e.getMessage());
-        }
+                return Response.ok(data);
+            } catch (OutOfMemoryError e) {
+                LOG.log(Level.SEVERE, "OOM during render", e);
+                return Response.error("Out of memory: reduce image dimensions (current: "
+                        + width + "x" + height + ")");
+            } catch (Exception e) {
+                LOG.log(Level.WARNING, "Render failed", e);
+                return Response.error("Rendering failed: " + e.getMessage());
+            }
+        }, () -> pendingResponse(targets, hasFilePath, finalFormat), lateHandler(targets, hasFilePath));
     }
 
     // --- Overhead mode ---
@@ -275,10 +310,30 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
 
         List<Camera> cameras = computeOverheadCameras(accessor, bounds, params);
 
-        // 3. Prepare cloned Home for rendering (hide walls, auto-grey floors)
+        // 3. Render on the background thread; answer early with the target paths if it runs long
+        List<Path> targets = new ArrayList<>();
+        if (params.hasFilePath) {
+            for (int i = 0; i < cameras.size(); i++) {
+                String indexed = params.angles > 1 ? generateIndexedFilePath(filePath, i + 1) : filePath;
+                targets.add(resolveImagePath(indexed, format));
+            }
+        } else {
+            targets.addAll(fallbackPaths(cameras.size(), format));
+        }
+        return runner.run(
+                () -> renderOverhead(accessor, params, cameras, bounds, quality, qualityStr, filePath, format),
+                () -> pendingResponse(targets, params.hasFilePath, format),
+                lateHandler(targets, params.hasFilePath));
+    }
+
+    /** Clones the home, renders every overhead angle and builds the response. */
+    private Response renderOverhead(HomeAccessor accessor, OverheadParams params, List<Camera> cameras,
+                                    SceneBounds bounds, AbstractPhotoRenderer.Quality quality,
+                                    String qualityStr, String filePath, String format) {
+        // Prepare cloned Home for rendering (hide walls, auto-grey floors)
         Home renderHome = prepareRenderHome(accessor, params.hideWalls);
 
-        // 4. Render all angles
+        // Render all angles
         List<Object> imagesMeta = new ArrayList<>();
         List<Map<String, Object>> mcpImages = new ArrayList<>();
         try {
@@ -293,8 +348,82 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
             return Response.error("Overhead rendering failed: " + e.getMessage());
         }
 
-        // 5. Build response
         return buildOverheadResponse(params, qualityStr, format, bounds, imagesMeta, mcpImages);
+    }
+
+    // --- Long renders ---
+
+    /** Response for a render that outlived the response budget and continues in the background. */
+    private Response pendingResponse(List<Path> targets, boolean hasFilePath, String format) {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("status", "rendering");
+        List<String> paths = new ArrayList<>();
+        for (Path p : targets) {
+            paths.add(p.toString());
+        }
+        data.put("filePaths", paths);
+        data.put("format", format);
+        data.put("message", "The render is taking longer than " + (runner.getBudgetMs() / 1000)
+                + " s, so it continues in the background"
+                + (hasFilePath ? "" : " and its image(s) will be saved to files instead of returned inline")
+                + ". The image(s) appear at filePaths when done; check that the files exist before "
+                + "reading them. Renders run one at a time, so a new render waits for this one.");
+        LOG.info("Render exceeded " + runner.getBudgetMs() + " ms, continuing in background -> " + paths);
+        return Response.ok(data);
+    }
+
+    /** What to do with a render's result when it arrives after the pending response went out. */
+    private Consumer<Response> lateHandler(List<Path> targets, boolean hasFilePath) {
+        return response -> {
+            if (response.isError()) {
+                LOG.warning("Background render failed: " + response.getMessage());
+            } else if (hasFilePath) {
+                LOG.info("Background render finished: " + targets);
+            } else {
+                saveInlineImages(response, targets);
+            }
+        };
+    }
+
+    /** Writes the base64 images of an inline render response to {@code targets}. */
+    static void saveInlineImages(Response response, List<Path> targets) {
+        Map<String, Object> data = response.getData();
+        List<String> images = new ArrayList<>();
+        if (data.get("_image") != null) {
+            images.add(data.get("_image").toString());
+        }
+        Object list = data.get("_images");
+        if (list instanceof List) {
+            for (Object item : (List<?>) list) {
+                if (item instanceof Map && ((Map<?, ?>) item).get("data") != null) {
+                    images.add(((Map<?, ?>) item).get("data").toString());
+                }
+            }
+        }
+        for (int i = 0; i < images.size() && i < targets.size(); i++) {
+            Path target = targets.get(i);
+            try {
+                if (target.getParent() != null) {
+                    Files.createDirectories(target.getParent());
+                }
+                Files.write(target, Base64.getDecoder().decode(images.get(i)));
+                LOG.info("Background render saved to " + target);
+            } catch (Exception e) {
+                LOG.log(Level.WARNING, "Could not save background render to " + target, e);
+            }
+        }
+    }
+
+    /** Files for an inline render that has to be saved instead: {@code <tmp>/sh3d-mcp-renders/render-<time>[_i]}. */
+    static List<Path> fallbackPaths(int count, String format) {
+        Path dir = Paths.get(System.getProperty("java.io.tmpdir"), "sh3d-mcp-renders");
+        String base = "render-" + new SimpleDateFormat("yyyyMMdd-HHmmss-SSS").format(new Date());
+        String ext = "png".equals(format) ? ".png" : ".jpg";
+        List<Path> paths = new ArrayList<>();
+        for (int i = 1; i <= count; i++) {
+            paths.add(dir.resolve(base + (count > 1 ? "_" + i : "") + ext).toAbsolutePath());
+        }
+        return paths;
     }
 
     /** Validates overhead-specific parameters and populates {@code params}. Returns error Response or null if valid. */
@@ -554,19 +683,10 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
         int sizeBytes;
 
         if (filePath != null && !filePath.trim().isEmpty()) {
-            Path path;
-            if ("jpeg".equals(format)) {
-                path = PathValidator.normalizeOnly(filePath);
-                path = PathValidator.replaceExtension(path, ".jpg", ".png");
-                path = PathValidator.ensureExtension(path, ".jpg", ".jpeg");
-            } else {
-                path = PathValidator.validateAndNormalize(filePath, ".png");
-            }
-            if ("jpeg".equals(format)) {
-                Path parent = path.getParent();
-                if (parent != null) {
-                    Files.createDirectories(parent);
-                }
+            Path path = resolveImagePath(filePath, format);
+            Path parent = path.getParent();
+            if (parent != null) {
+                Files.createDirectories(parent);
             }
             File file = path.toFile();
             writeImage(image, format, file);
@@ -601,6 +721,24 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
     }
 
     // --- Helpers ---
+
+    /**
+     * The file a render is saved to: the normalized path with its image extension matching
+     * {@code format}. An existing .png/.jpg/.jpeg is replaced, never doubled ({@code ov.jpg}
+     * as PNG is {@code ov.png}, not {@code ov.jpg.png}); JPEG keeps a given .jpeg spelling.
+     */
+    static Path resolveImagePath(String filePath, String format) {
+        String path = PathValidator.normalizeOnly(filePath).toString();
+        String lower = path.toLowerCase(Locale.ROOT);
+        String ext = "png".equals(format) ? ".png" : (lower.endsWith(".jpeg") ? ".jpeg" : ".jpg");
+        for (String known : new String[] {".png", ".jpeg", ".jpg"}) {
+            if (lower.endsWith(known)) {
+                path = path.substring(0, path.length() - known.length());
+                break;
+            }
+        }
+        return Paths.get(path + ext);
+    }
 
     static String generateIndexedFilePath(String filePath, int index) {
         String clean = filePath.trim();
@@ -700,7 +838,11 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
                 + "If 'filePath' is provided, saves image(s) to disk and returns only metadata (no base64). "
                 + "Use quality 'low' for quick preview, 'medium' for supersampled output "
                 + "(renders at 2x resolution then downscales — smoother than low, similar speed), "
-                + "or 'high' for photo-realistic ray-traced output.";
+                + "or 'high' for photo-realistic ray-traced output.\n\n"
+                + "LONG RENDERS: if rendering takes longer than " + (DEFAULT_RESPONSE_BUDGET_MS / 1000)
+                + " s, the call returns status='rendering' with 'filePaths' and the render continues "
+                + "in the background (an inline render is then saved to files instead). "
+                + "Read the files once they exist. Renders run one at a time.";
     }
 
     @Override
