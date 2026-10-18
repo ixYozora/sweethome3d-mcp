@@ -59,7 +59,7 @@
 |  |                                                                      | |
 |  |  CommandRegistry -----> CommandHandler (interface)                    | |
 |  |                         CommandDescriptor (auto-discovery)            | |
-|  |                         44 handler-класса                             | |
+|  |                         46 handler-классов                            | |
 |  +-------------------------------------|--------------------------------+ |
 |                                        |                                  |
 |                                        v                                  |
@@ -128,7 +128,7 @@ com.sh3d.mcp/
 |   |-- Request.java               # Value object: action + params
 |   |-- Response.java              # Value object: status + data/message
 |
-|-- command/                        # Обработчики команд (44 handler-класса + утилиты)
+|-- command/                        # Обработчики команд (46 handler-классов + утилиты)
 |   |-- CommandHandler.java        # Интерфейс обработчика
 |   |-- CommandDescriptor.java     # Интерфейс auto-discovery (description + schema)
 |   |-- CommandRegistry.java       # Реестр action -> handler
@@ -760,7 +760,7 @@ sh3d-mcp-plugin/
 |   |   |   |-- http/            # HttpMcpServer, McpRequestHandler, JsonRpcProtocol, ...
 |   |   |   |-- server/          # ServerState, ServerStateListener
 |   |   |   |-- protocol/        # JsonUtil, Request, Response
-|   |   |   |-- command/         # CommandHandler, CommandRegistry, 44 handlers, утилиты, shape generators
+|   |   |   |-- command/         # CommandHandler, CommandRegistry, 46 handlers, утилиты, shape generators
 |   |   |   |-- bridge/          # HomeAccessor, CheckpointManager, CommandException, PathValidator
 |   |   |   |-- config/          # PluginConfig
 |   |   |

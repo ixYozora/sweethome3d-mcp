@@ -5,6 +5,8 @@ import com.eteks.sweethome3d.plugin.PluginAction;
 import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.command.handler.AddDimensionLineHandler;
 import com.sh3d.mcp.command.handler.AddLabelHandler;
+import com.sh3d.mcp.command.handler.DeleteLabelHandler;
+import com.sh3d.mcp.command.handler.ModifyLabelHandler;
 import com.sh3d.mcp.command.handler.AddLevelHandler;
 import com.sh3d.mcp.command.handler.ApplyTextureHandler;
 import com.sh3d.mcp.bridge.CheckpointManager;
@@ -215,6 +217,7 @@ public class SH3DMcpPlugin extends Plugin {
         registry.register("create_walls", new CreateWallsHandler());
         registry.register("delete_dimension_line", new DeleteDimensionLineHandler());
         registry.register("delete_furniture", new DeleteFurnitureHandler());
+        registry.register("delete_label", new DeleteLabelHandler());
         registry.register("delete_level", new DeleteLevelHandler());
         registry.register("delete_room", new DeleteRoomHandler());
         registry.register("delete_wall", new DeleteWallHandler());
@@ -222,6 +225,7 @@ public class SH3DMcpPlugin extends Plugin {
         registry.register("generate_shape", new GenerateShapeHandler());
         registry.register("modify_dimension_line", new ModifyDimensionLineHandler());
         registry.register("modify_furniture", new ModifyFurnitureHandler());
+        registry.register("modify_label", new ModifyLabelHandler());
         registry.register("modify_room", new ModifyRoomHandler());
         registry.register("modify_wall", new ModifyWallHandler());
         registry.register("place_door_or_window", new PlaceDoorOrWindowHandler());

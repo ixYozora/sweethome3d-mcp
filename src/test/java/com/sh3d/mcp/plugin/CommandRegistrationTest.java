@@ -45,6 +45,7 @@ class CommandRegistrationTest {
             "create_walls",
             "delete_dimension_line",
             "delete_furniture",
+            "delete_label",
             "delete_level",
             "delete_room",
             "delete_wall",
@@ -64,6 +65,7 @@ class CommandRegistrationTest {
             "load_home",
             "modify_dimension_line",
             "modify_furniture",
+            "modify_label",
             "modify_room",
             "modify_wall",
             "place_door_or_window",
@@ -129,9 +131,9 @@ class CommandRegistrationTest {
 
     @Test
     void testExactlyTheDocumentedCommandsAreRegistered() {
-        // README and ARCHITECTURE say 44; a command added or dropped must change them together
+        // README and ARCHITECTURE say 46; a command added or dropped must change them together
         assertEquals(new TreeSet<>(EXPECTED_COMMANDS), new TreeSet<>(registry.getHandlers().keySet()));
-        assertEquals(44, registry.getHandlers().size());
+        assertEquals(46, registry.getHandlers().size());
     }
 
     @Test

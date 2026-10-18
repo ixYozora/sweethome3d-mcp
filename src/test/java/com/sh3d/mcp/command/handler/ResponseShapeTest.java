@@ -123,6 +123,32 @@ class ResponseShapeTest {
     }
 
     @Test
+    void modifyLabelMatchesAddLabel() {
+        Label label = new Label("Kitchen", 300, 200);
+        home.addLabel(label);
+
+        Map<String, Object> plain = run(new ModifyLabelHandler(), "modify_label",
+                "id", label.getId(), "x", 120.0);
+        assertEquals(LABEL_KEYS, keys(plain));
+
+        Map<String, Object> styled = run(new ModifyLabelHandler(), "modify_label",
+                "id", label.getId(), "fontSize", 20.0);
+        List<String> expected = new ArrayList<>(LABEL_KEYS);
+        expected.add("style");
+        assertEquals(expected, keys(styled));
+    }
+
+    @Test
+    void deleteLabelResponse() {
+        Label label = new Label("Kitchen", 300, 200);
+        home.addLabel(label);
+
+        Map<String, Object> data = run(new DeleteLabelHandler(), "delete_label", "id", label.getId());
+
+        assertEquals(Arrays.asList("id", "text", "x", "y", "angle", "color", "message"), keys(data));
+    }
+
+    @Test
     void setEnvironmentResponse() {
         Map<String, Object> data = run(new SetEnvironmentHandler(), "set_environment",
                 "groundColor", "#A0B0C0", "wallsAlpha", 0.25);

@@ -63,6 +63,8 @@ class ModifiesHomeTest {
                 new SetEnvironmentHandler(),
                 new GenerateShapeHandler(),
                 new AddLabelHandler(),
+                new ModifyLabelHandler(),
+                new DeleteLabelHandler(),
                 new AddDimensionLineHandler(),
                 new ModifyDimensionLineHandler(),
                 new DeleteDimensionLineHandler(),

@@ -130,25 +130,32 @@ public class AddLabelHandler implements CommandHandler, CommandDescriptor {
             }
 
             home.addLabel(label);
-
-            Map<String, Object> result = FormatUtil.buildLabelInfo(label);
-            result.put("outlineColor", colorToHex(label.getOutlineColor()));
-            result.put("elevation", round2(label.getElevation()));
-            Float lp = label.getPitch();
-            result.put("pitch", lp != null ? round2((float) Math.toDegrees(lp)) : null);
-            if (label.getStyle() != null) {
-                TextStyle ts = label.getStyle();
-                Map<String, Object> styleMap = new LinkedHashMap<>();
-                styleMap.put("fontSize", ts.getFontSize());
-                styleMap.put("bold", ts.isBold());
-                styleMap.put("italic", ts.isItalic());
-                styleMap.put("alignment", ts.getAlignment().name());
-                result.put("style", styleMap);
-            }
-            return result;
+            return buildFullLabelInfo(label);
         });
 
         return Response.ok(data);
+    }
+
+    /**
+     * Label result shared by add_label and modify_label: the get_state label fields
+     * plus outlineColor, elevation, pitch (degrees) and the text style when set.
+     */
+    static Map<String, Object> buildFullLabelInfo(Label label) {
+        Map<String, Object> result = FormatUtil.buildLabelInfo(label);
+        result.put("outlineColor", colorToHex(label.getOutlineColor()));
+        result.put("elevation", round2(label.getElevation()));
+        Float lp = label.getPitch();
+        result.put("pitch", lp != null ? round2((float) Math.toDegrees(lp)) : null);
+        if (label.getStyle() != null) {
+            TextStyle ts = label.getStyle();
+            Map<String, Object> styleMap = new LinkedHashMap<>();
+            styleMap.put("fontSize", ts.getFontSize());
+            styleMap.put("bold", ts.isBold());
+            styleMap.put("italic", ts.isItalic());
+            styleMap.put("alignment", ts.getAlignment().name());
+            result.put("style", styleMap);
+        }
+        return result;
     }
 
     @Override
