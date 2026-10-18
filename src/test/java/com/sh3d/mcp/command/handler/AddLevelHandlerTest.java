@@ -1,7 +1,11 @@
 package com.sh3d.mcp.command.handler;
 
 import com.eteks.sweethome3d.model.Home;
+import com.eteks.sweethome3d.model.HomePieceOfFurniture;
+import com.eteks.sweethome3d.model.Label;
 import com.eteks.sweethome3d.model.Level;
+import com.eteks.sweethome3d.model.Room;
+import com.eteks.sweethome3d.model.Wall;
 import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
@@ -12,6 +16,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.sh3d.mcp.command.handler.TestFixtures.addFurniture;
+import static com.sh3d.mcp.command.handler.TestFixtures.addLevel;
+import static com.sh3d.mcp.command.handler.TestFixtures.addRoom;
+import static com.sh3d.mcp.command.handler.TestFixtures.addWall;
 import static com.sh3d.mcp.command.handler.TestFixtures.createAccessor;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -173,6 +181,59 @@ class AddLevelHandlerTest {
         assertTrue(required.contains("name"));
         assertTrue(required.contains("elevation"));
         assertFalse(required.contains("height"));
+    }
+
+    // --- First level in a home that already has content ---
+
+    @Test
+    void testFirstLevelAboveGroundPutsExistingContentOnLevel0() {
+        Wall wall = addWall(home, 0, 0, 400, 0);
+        HomePieceOfFurniture table = addFurniture(home, "Table", 100, 100);
+        Room room = addRoom(home, 0, 0, 400, 300);
+        Label label = new Label("Kitchen", 50, 50);
+        home.addLabel(label);
+
+        Response resp = handler.execute(makeRequest("Upper", 262, null, null), accessor);
+
+        assertTrue(resp.isOk(), resp.getMessage());
+        assertEquals(2, home.getLevels().size());
+        Level ground = home.getLevels().get(0);
+        assertEquals(AddLevelHandler.GROUND_LEVEL_NAME, ground.getName());
+        assertEquals(0f, ground.getElevation(), 0.01f);
+        assertSame(ground, wall.getLevel());
+        assertSame(ground, table.getLevel());
+        assertSame(ground, room.getLevel());
+        assertSame(ground, label.getLevel());
+        assertEquals("Upper", home.getSelectedLevel().getName());
+        Map<?, ?> groundInfo = (Map<?, ?>) resp.getData().get("groundLevel");
+        assertEquals(ground.getId(), groundInfo.get("id"));
+        assertEquals(4, ((Number) groundInfo.get("movedItemCount")).intValue());
+    }
+
+    @Test
+    void testFirstLevelAtElevationZeroTakesExistingContent() {
+        Wall wall = addWall(home, 0, 0, 400, 0);
+
+        Response resp = handler.execute(makeRequest("Ground floor", 0, null, null), accessor);
+
+        assertTrue(resp.isOk(), resp.getMessage());
+        assertEquals(1, home.getLevels().size());
+        assertSame(home.getLevels().get(0), wall.getLevel());
+        assertEquals("Ground floor", wall.getLevel().getName());
+    }
+
+    @Test
+    void testLaterLevelsLeaveContentWhereItIs() {
+        Level ground = addLevel(home, "Ground", 0, 250, 12);
+        home.setSelectedLevel(ground);
+        Wall wall = addWall(home, 0, 0, 400, 0);
+
+        Response resp = handler.execute(makeRequest("Upper", 262, null, null), accessor);
+
+        assertTrue(resp.isOk(), resp.getMessage());
+        assertEquals(2, home.getLevels().size());
+        assertSame(ground, wall.getLevel());
+        assertFalse(resp.getData().containsKey("groundLevel"));
     }
 
     private Request makeRequest(String name, float elevation, Double height, Double floorThickness) {
