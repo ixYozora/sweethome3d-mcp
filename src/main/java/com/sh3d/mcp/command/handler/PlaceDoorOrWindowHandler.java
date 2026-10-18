@@ -3,6 +3,7 @@ import com.sh3d.mcp.command.CommandHandler;
 import com.sh3d.mcp.command.CommandDescriptor;
 import com.sh3d.mcp.command.util.FormatUtil;
 import com.sh3d.mcp.command.util.CatalogSearchUtil;
+import com.sh3d.mcp.command.util.HomePieceFactory;
 import com.sh3d.mcp.command.util.SashUtil;
 
 import com.eteks.sweethome3d.model.CatalogDoorOrWindow;
@@ -109,9 +110,7 @@ public class PlaceDoorOrWindowHandler implements CommandHandler, CommandDescript
             float y = point[1];
             float angle = point[2];
 
-            HomePieceOfFurniture piece = (found instanceof CatalogDoorOrWindow)
-                    ? new HomeDoorOrWindow((CatalogDoorOrWindow) found)
-                    : new HomePieceOfFurniture(found);
+            HomePieceOfFurniture piece = HomePieceFactory.create(found);
             float wallThickness = wall.getThickness();
             piece.setAngle(angle);
             if (piece instanceof HomeDoorOrWindow && hasFrameMetadata((HomeDoorOrWindow) piece)) {

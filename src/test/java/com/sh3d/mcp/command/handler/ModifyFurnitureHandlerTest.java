@@ -1,11 +1,14 @@
 package com.sh3d.mcp.command.handler;
 
 import com.eteks.sweethome3d.model.CatalogDoorOrWindow;
+import com.eteks.sweethome3d.model.CatalogLight;
 import com.eteks.sweethome3d.model.CatalogPieceOfFurniture;
 import com.eteks.sweethome3d.model.Home;
 import com.eteks.sweethome3d.model.HomeDoorOrWindow;
 import com.eteks.sweethome3d.model.HomeFurnitureGroup;
+import com.eteks.sweethome3d.model.HomeLight;
 import com.eteks.sweethome3d.model.HomePieceOfFurniture;
+import com.eteks.sweethome3d.model.LightSource;
 import com.eteks.sweethome3d.model.Sash;
 import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.protocol.Request;
@@ -464,6 +467,49 @@ class ModifyFurnitureHandlerTest {
         static final Sash[] TWO = {
                 new Sash(0f, 1f, 0.5f, 0f, (float) Math.toRadians(-90)),
                 new Sash(1f, 1f, 0.5f, (float) Math.PI, (float) Math.toRadians(270))};
+    }
+
+    // --- Light power ---
+
+    @Test
+    void testPowerChangesLightIntensity() {
+        HomeLight lamp = addLight("Lamp");
+
+        Response resp = handler.execute(makeRequest(lamp.getId(), "power", 0.8), accessor);
+
+        assertTrue(resp.isOk(), resp.getMessage());
+        assertEquals(0.8f, lamp.getPower(), 0.001f);
+        assertEquals(0.8, ((Number) resp.getData().get("power")).doubleValue(), 0.001);
+    }
+
+    @Test
+    void testPowerOnNonLightIsRejectedWithoutChanges() {
+        HomePieceOfFurniture table = addFurniture("Table", 10f, 20f);
+
+        Response resp = handler.execute(makeRequest(table.getId(), "power", 0.8, "x", 99.0), accessor);
+
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains("not a light"));
+        assertEquals(10f, table.getX(), 0.001f);
+    }
+
+    @Test
+    void testPowerOutOfRangeIsRejected() {
+        HomeLight lamp = addLight("Lamp");
+
+        Response resp = handler.execute(makeRequest(lamp.getId(), "power", 1.5), accessor);
+
+        assertTrue(resp.isError());
+        assertEquals(0.5f, lamp.getPower(), 0.001f);
+    }
+
+    private HomeLight addLight(String name) {
+        HomeLight light = new HomeLight(new CatalogLight("test#" + name, name, null, null, null,
+                30f, 30f, 60f, 0f, true,
+                new LightSource[] {new LightSource(0.5f, 0.5f, 0.9f, 0xFFFFFF)},
+                null, null, true, null, null));
+        home.addPieceOfFurniture(light);
+        return light;
     }
 
     private HomeDoorOrWindow addDoor(String name) {

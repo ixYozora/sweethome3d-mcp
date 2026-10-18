@@ -6,6 +6,7 @@ import com.sh3d.mcp.command.util.ColorParser;
 import com.sh3d.mcp.command.util.SashUtil;
 
 import com.eteks.sweethome3d.model.Home;
+import com.eteks.sweethome3d.model.HomeLight;
 import com.eteks.sweethome3d.model.HomePieceOfFurniture;
 import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.bridge.ObjectResolver;
@@ -29,7 +30,7 @@ public class ModifyFurnitureHandler implements CommandHandler, CommandDescriptor
 
     private static final List<String> MODIFIABLE_KEYS = Arrays.asList(
             "x", "y", "angle", "elevation", "width", "depth", "height",
-            "color", "visible", "mirrored", "name", SashUtil.PARAM_PRESET, SashUtil.PARAM_SASHES
+            "color", "visible", "mirrored", "name", "power", SashUtil.PARAM_PRESET, SashUtil.PARAM_SASHES
     );
 
     @Override
@@ -43,7 +44,12 @@ public class ModifyFurnitureHandler implements CommandHandler, CommandDescriptor
         boolean hasModifiable = MODIFIABLE_KEYS.stream().anyMatch(params::containsKey);
         if (!hasModifiable) {
             return Response.error("No modifiable properties provided. "
-                    + "Supported: x, y, angle, elevation, width, depth, height, color, visible, mirrored, name, sashPreset, sashes");
+                    + "Supported: x, y, angle, elevation, width, depth, height, color, visible, mirrored, name, power, sashPreset, sashes");
+        }
+
+        final Float power = params.containsKey("power") ? request.getFloat("power") : null;
+        if (power != null && (power < 0 || power > 1)) {
+            return Response.error("'power' must be between 0 and 1, got " + power);
         }
 
         // Validate color format before EDT
@@ -74,6 +80,11 @@ public class ModifyFurnitureHandler implements CommandHandler, CommandDescriptor
             if (sashError != null) {
                 Map<String, Object> err = new LinkedHashMap<>();
                 err.put("_error", sashError);
+                return err;
+            }
+            if (power != null && !(piece instanceof HomeLight)) {
+                Map<String, Object> err = new LinkedHashMap<>();
+                err.put("_error", "'power' only applies to lights, and '" + piece.getName() + "' is not a light");
                 return err;
             }
 
@@ -107,6 +118,9 @@ public class ModifyFurnitureHandler implements CommandHandler, CommandDescriptor
                 piece.setColor(null);
             } else if (colorToSet != null) {
                 piece.setColor(colorToSet);
+            }
+            if (power != null) {
+                ((HomeLight) piece).setPower(power);
             }
 
             // Flags
@@ -155,7 +169,8 @@ public class ModifyFurnitureHandler implements CommandHandler, CommandDescriptor
         return "Modifies properties of existing furniture by ID. Use get_state to find furniture IDs. "
                 + "Only provided properties are changed; omitted properties remain unchanged. "
                 + "Coordinates are in centimeters, angle in degrees. "
-                + "Color is a hex string like '#FF0000' (red) or null to reset to default.";
+                + "Color is a hex string like '#FF0000' (red) or null to reset to default. "
+                + "For lights, 'power' sets the light intensity (0 to 1).";
     }
 
     @Override
@@ -173,6 +188,7 @@ public class ModifyFurnitureHandler implements CommandHandler, CommandDescriptor
                 .bool("visible", "Whether furniture is visible in the scene")
                 .bool("mirrored", "Whether furniture model is mirrored")
                 .string("name", "New display name for the furniture")
+                .number("power", "Light intensity from 0 to 1, lights only (Sweet Home 3D default: 0.5)")
                 .enumProp(SashUtil.PARAM_PRESET, SashUtil.presetDescription(), SashUtil.PRESETS)
                 .array(SashUtil.PARAM_SASHES, SashUtil.sashArraySchema())
                 .build();

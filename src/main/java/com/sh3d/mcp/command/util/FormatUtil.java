@@ -3,6 +3,7 @@ package com.sh3d.mcp.command.util;
 import com.eteks.sweethome3d.model.Camera;
 import com.eteks.sweethome3d.model.DimensionLine;
 import com.eteks.sweethome3d.model.HomeEnvironment;
+import com.eteks.sweethome3d.model.HomeLight;
 import com.eteks.sweethome3d.model.HomePieceOfFurniture;
 import com.eteks.sweethome3d.model.HomeTexture;
 import com.eteks.sweethome3d.model.Label;
@@ -77,7 +78,7 @@ public final class FormatUtil {
 
     /**
      * Builds a standard furniture info map with common fields:
-     * id, name, x, y, angle (degrees), elevation, width, depth, height.
+     * id, name, x, y, angle (degrees), elevation, width, depth, height, and power for lights.
      * Callers may add extra fields (color, visible, mirrored, etc.) to the returned map.
      */
     public static Map<String, Object> buildFurnitureInfo(HomePieceOfFurniture piece) {
@@ -91,6 +92,9 @@ public final class FormatUtil {
         info.put("width", round2(piece.getWidth()));
         info.put("depth", round2(piece.getDepth()));
         info.put("height", round2(piece.getHeight()));
+        if (piece instanceof HomeLight) {
+            info.put("power", round2(((HomeLight) piece).getPower()));
+        }
         SashUtil.putCount(info, piece);
         return info;
     }

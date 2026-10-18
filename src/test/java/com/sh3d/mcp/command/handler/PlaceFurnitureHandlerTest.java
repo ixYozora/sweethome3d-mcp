@@ -1,12 +1,15 @@
 package com.sh3d.mcp.command.handler;
 
 import com.eteks.sweethome3d.model.CatalogDoorOrWindow;
+import com.eteks.sweethome3d.model.CatalogLight;
 import com.eteks.sweethome3d.model.CatalogPieceOfFurniture;
 import com.eteks.sweethome3d.model.FurnitureCatalog;
 import com.eteks.sweethome3d.model.FurnitureCategory;
 import com.eteks.sweethome3d.model.Home;
 import com.eteks.sweethome3d.model.HomeDoorOrWindow;
+import com.eteks.sweethome3d.model.HomeLight;
 import com.eteks.sweethome3d.model.HomePieceOfFurniture;
+import com.eteks.sweethome3d.model.LightSource;
 import com.eteks.sweethome3d.model.Sash;
 import com.eteks.sweethome3d.model.UserPreferences;
 import com.sh3d.mcp.bridge.HomeAccessor;
@@ -500,5 +503,28 @@ class PlaceFurnitureHandlerTest {
         HomePieceOfFurniture placed = home.getFurniture().get(0);
         assertTrue(placed instanceof HomeDoorOrWindow);
         assertTrue(placed.isDoorOrWindow());
+    }
+
+    @Test
+    void testCatalogLightPlacedAsHomeLight() {
+        CatalogLight lamp = new CatalogLight("test#halogen", "Halogen Lamp", null, null, null,
+                30f, 30f, 180f, 0f, true,
+                new LightSource[] {new LightSource(0.5f, 0.5f, 0.95f, 0xFFFFFF)},
+                null, null, true, null, null);
+        Home lightHome = new Home();
+        HomeAccessor lightAccessor = TestFixtures.createAccessorWithCatalog(
+                lightHome, TestFixtures.createCatalog("Lights", lamp));
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("name", "Halogen Lamp");
+        params.put("x", 100.0);
+        params.put("y", 50.0);
+
+        Response resp = handler.execute(new Request("place_furniture", params), lightAccessor);
+
+        assertTrue(resp.isOk(), resp.getMessage());
+        HomePieceOfFurniture placed = lightHome.getFurniture().get(0);
+        assertTrue(placed instanceof HomeLight);
+        assertEquals(1, ((HomeLight) placed).getLightSources().length);
+        assertEquals(0.5, ((Number) resp.getData().get("power")).doubleValue(), 0.001);
     }
 }
