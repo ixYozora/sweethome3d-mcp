@@ -41,7 +41,7 @@ class ListLevelsHandlerTest {
 
     @Test
     void testSingleLevel() {
-        addLevel("Ground Floor", 0, 12, 250);
+        Level ground = addLevel("Ground Floor", 0, 12, 250);
 
         Response resp = handler.execute(makeRequest(), accessor);
 
@@ -51,7 +51,7 @@ class ListLevelsHandlerTest {
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> levels = (List<Map<String, Object>>) resp.getData().get("levels");
         Map<String, Object> level = levels.get(0);
-        assertEquals(0, ((Number) level.get("id")).intValue());
+        assertEquals(ground.getId(), level.get("id"));
         assertEquals("Ground Floor", level.get("name"));
         assertEquals(0.0, ((Number) level.get("elevation")).doubleValue(), 0.01);
         assertEquals(250.0, ((Number) level.get("height")).doubleValue(), 0.01);
@@ -101,17 +101,31 @@ class ListLevelsHandlerTest {
 
     @Test
     void testLevelIds() {
-        addLevel("A", 0, 12, 250);
-        addLevel("B", 250, 12, 250);
-        addLevel("C", 500, 12, 250);
+        Level a = addLevel("A", 0, 12, 250);
+        Level b = addLevel("B", 250, 12, 250);
+        Level c = addLevel("C", 500, 12, 250);
 
         Response resp = handler.execute(makeRequest(), accessor);
 
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> levels = (List<Map<String, Object>>) resp.getData().get("levels");
-        assertEquals(0, ((Number) levels.get(0).get("id")).intValue());
-        assertEquals(1, ((Number) levels.get(1).get("id")).intValue());
-        assertEquals(2, ((Number) levels.get(2).get("id")).intValue());
+        assertEquals(a.getId(), levels.get(0).get("id"));
+        assertEquals(b.getId(), levels.get(1).get("id"));
+        assertEquals(c.getId(), levels.get(2).get("id"));
+    }
+
+    @Test
+    void testListedIdIsAcceptedBySetSelectedLevel() {
+        addLevel("Ground", 0, 12, 250);
+        Level upper = addLevel("Upper", 250, 12, 250);
+        home.setSelectedLevel(home.getLevels().get(0));
+        Object upperId = getLevelData(1).get("id");
+
+        Response resp = new SetSelectedLevelHandler().execute(
+                new Request("set_selected_level", Map.of("id", upperId)), accessor);
+
+        assertTrue(resp.isOk(), resp.getMessage());
+        assertSame(upper, home.getSelectedLevel());
     }
 
     @Test

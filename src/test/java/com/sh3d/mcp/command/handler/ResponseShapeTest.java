@@ -87,9 +87,9 @@ class ResponseShapeTest {
         List<Object> levels = asList(data.get("levels"));
         assertEquals(LEVEL_ITEM_KEYS, keys(levels.get(0)));
         assertEquals(LEVEL_ITEM_KEYS, keys(levels.get(1)));
-        // list_levels has always reported the position, as a JSON number
-        assertEquals(0, asMap(levels.get(0)).get("id"));
-        assertEquals(1, asMap(levels.get(1)).get("id"));
+        // Same stable id as get_state / add_level (it used to be the list position, see #9)
+        assertEquals(home.getLevels().get(0).getId(), asMap(levels.get(0)).get("id"));
+        assertEquals(home.getLevels().get(1).getId(), asMap(levels.get(1)).get("id"));
     }
 
     @Test

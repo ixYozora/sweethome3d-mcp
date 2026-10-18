@@ -31,13 +31,12 @@ public class ListLevelsHandler implements CommandHandler, CommandDescriptor {
             Level selected = home.getSelectedLevel();
 
             List<Object> levelList = new ArrayList<>();
-            int index = 0;
             for (Level level : levels) {
-                Map<String, Object> item = FormatUtil.buildLevelInfo(index, level);
+                // Same stable ID as get_state and add_level, accepted by set_selected_level / delete_level
+                Map<String, Object> item = FormatUtil.buildLevelInfo(level.getId(), level);
                 item.put("viewable", level.isViewable());
                 item.put("selected", level.equals(selected));
                 levelList.add(item);
-                index++;
             }
 
             Map<String, Object> result = new LinkedHashMap<>();
@@ -57,7 +56,8 @@ public class ListLevelsHandler implements CommandHandler, CommandDescriptor {
     @Override
     public String getDescription() {
         return "Returns all levels (floors) in the home with their properties. "
-                + "Each level has: id (index), name, elevation, height, floorThickness, viewable, "
+                + "Each level has: id (stable level ID for set_selected_level and delete_level), "
+                + "name, elevation, height, floorThickness, viewable, "
                 + "and selected (true if this is the currently active level). "
                 + "Use set_selected_level to switch between levels. "
                 + "If no levels exist, returns an empty list (single-level homes have no explicit levels).";
