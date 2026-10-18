@@ -2,8 +2,14 @@ package com.sh3d.mcp.command.handler;
 import com.sh3d.mcp.command.CommandHandler;
 import com.sh3d.mcp.command.CommandDescriptor;
 
+import com.eteks.sweethome3d.model.DimensionLine;
 import com.eteks.sweethome3d.model.Home;
+import com.eteks.sweethome3d.model.HomePieceOfFurniture;
+import com.eteks.sweethome3d.model.Label;
 import com.eteks.sweethome3d.model.Level;
+import com.eteks.sweethome3d.model.Polyline;
+import com.eteks.sweethome3d.model.Room;
+import com.eteks.sweethome3d.model.Wall;
 import com.sh3d.mcp.bridge.CheckpointManager;
 import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.protocol.Request;
@@ -63,26 +69,32 @@ public class RestoreCheckpointHandler implements CommandHandler, CommandDescript
             return Response.error(e.getMessage());
         }
 
-        Home source = snapshot.getHome();
+        Home snapshotHome = snapshot.getHome();
 
         // Apply snapshot to live Home on EDT
         Map<String, Object> data = accessor.runOnEDT(() -> {
             Home home = accessor.getHome();
+            // Restore a copy: the live home must not share objects with the snapshot,
+            // or later edits would change the snapshot too (clone keeps object IDs)
+            Home source = snapshotHome.clone();
 
             // Clear everything
             LoadHomeHandler.clearAll(home);
 
-            // Populate from snapshot
+            // Populate from snapshot, keeping each object on its level
             int levels = LoadHomeHandler.addAll(home, source.getLevels(), home::addLevel);
-            int walls = LoadHomeHandler.addAll(home, source.getWalls(), home::addWall);
-            int rooms = LoadHomeHandler.addAll(home, source.getRooms(), home::addRoom);
-            int furniture = LoadHomeHandler.addAll(home, source.getFurniture(),
-                    home::addPieceOfFurniture);
-            int labels = LoadHomeHandler.addAll(home, source.getLabels(), home::addLabel);
-            int dimensionLines = LoadHomeHandler.addAll(home, source.getDimensionLines(),
-                    home::addDimensionLine);
-            int polylines = LoadHomeHandler.addAll(home, source.getPolylines(),
-                    home::addPolyline);
+            int walls = LoadHomeHandler.addAllAtLevel(source.getWalls(), home::addWall,
+                    Wall::setLevel);
+            int rooms = LoadHomeHandler.addAllAtLevel(source.getRooms(), home::addRoom,
+                    Room::setLevel);
+            int furniture = LoadHomeHandler.addAllAtLevel(source.getFurniture(),
+                    home::addPieceOfFurniture, HomePieceOfFurniture::setLevel);
+            int labels = LoadHomeHandler.addAllAtLevel(source.getLabels(), home::addLabel,
+                    Label::setLevel);
+            int dimensionLines = LoadHomeHandler.addAllAtLevel(source.getDimensionLines(),
+                    home::addDimensionLine, DimensionLine::setLevel);
+            int polylines = LoadHomeHandler.addAllAtLevel(source.getPolylines(),
+                    home::addPolyline, Polyline::setLevel);
 
             // Cameras
             LoadHomeHandler.copyCameras(home, source);

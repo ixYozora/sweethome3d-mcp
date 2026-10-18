@@ -4,11 +4,18 @@ import com.sh3d.mcp.command.CommandDescriptor;
 
 import com.eteks.sweethome3d.io.HomeFileRecorder;
 import com.eteks.sweethome3d.model.Compass;
+import com.eteks.sweethome3d.model.DimensionLine;
+import com.eteks.sweethome3d.model.Elevatable;
 import com.eteks.sweethome3d.model.Home;
 import com.eteks.sweethome3d.model.HomeEnvironment;
+import com.eteks.sweethome3d.model.HomePieceOfFurniture;
+import com.eteks.sweethome3d.model.Label;
 import com.eteks.sweethome3d.model.Level;
 import com.eteks.sweethome3d.model.ObserverCamera;
+import com.eteks.sweethome3d.model.Polyline;
 import com.eteks.sweethome3d.model.RecorderException;
+import com.eteks.sweethome3d.model.Room;
+import com.eteks.sweethome3d.model.Wall;
 import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.bridge.HomeCleaner;
 import com.sh3d.mcp.protocol.Request;
@@ -93,14 +100,15 @@ public class LoadHomeHandler implements CommandHandler, CommandDescriptor {
 
             // --- POPULATE ---
             int levels = addAll(home, loaded.getLevels(), home::addLevel);
-            int walls = addAll(home, loaded.getWalls(), home::addWall);
-            int rooms = addAll(home, loaded.getRooms(), home::addRoom);
-            int furniture = addAll(home, loaded.getFurniture(),
-                    home::addPieceOfFurniture);
-            int labels = addAll(home, loaded.getLabels(), home::addLabel);
-            int dimensionLines = addAll(home, loaded.getDimensionLines(),
-                    home::addDimensionLine);
-            int polylines = addAll(home, loaded.getPolylines(), home::addPolyline);
+            int walls = addAllAtLevel(loaded.getWalls(), home::addWall, Wall::setLevel);
+            int rooms = addAllAtLevel(loaded.getRooms(), home::addRoom, Room::setLevel);
+            int furniture = addAllAtLevel(loaded.getFurniture(),
+                    home::addPieceOfFurniture, HomePieceOfFurniture::setLevel);
+            int labels = addAllAtLevel(loaded.getLabels(), home::addLabel, Label::setLevel);
+            int dimensionLines = addAllAtLevel(loaded.getDimensionLines(),
+                    home::addDimensionLine, DimensionLine::setLevel);
+            int polylines = addAllAtLevel(loaded.getPolylines(), home::addPolyline,
+                    Polyline::setLevel);
 
             // --- Camera ---
             copyCameras(home, loaded);
@@ -159,6 +167,25 @@ public class LoadHomeHandler implements CommandHandler, CommandDescriptor {
         int count = 0;
         for (T item : items) {
             adder.accept(item);
+            count++;
+        }
+        return count;
+    }
+
+    /**
+     * Like {@link #addAll} but keeps the level each item had in its source home:
+     * Home.addWall, addRoom, addPieceOfFurniture etc. move the added item to the
+     * selected level, which flattens a multi-level home onto a single level.
+     * Levels must be added to the home first.
+     */
+    static <T extends Elevatable> int addAllAtLevel(java.util.Collection<T> items,
+                                                    java.util.function.Consumer<T> adder,
+                                                    java.util.function.BiConsumer<T, Level> levelSetter) {
+        int count = 0;
+        for (T item : items) {
+            Level level = item.getLevel();
+            adder.accept(item);
+            levelSetter.accept(item, level);
             count++;
         }
         return count;

@@ -3,6 +3,7 @@ import com.sh3d.mcp.command.CommandHandler;
 import com.sh3d.mcp.command.CommandDescriptor;
 
 import com.eteks.sweethome3d.model.Home;
+import com.eteks.sweethome3d.model.Level;
 import com.eteks.sweethome3d.model.Room;
 import com.eteks.sweethome3d.model.Wall;
 import com.sh3d.mcp.bridge.CheckpointManager;
@@ -370,6 +371,53 @@ class RestoreCheckpointHandlerTest {
     }
 
     // --- Helpers ---
+
+    // --- Multi-level homes (#10) and snapshot isolation ---
+
+    @Test
+    void testRestoreKeepsEveryObjectOnItsLevel() {
+        Level ground = addLevel(home, "Ground", 0, 250, 12);
+        Level upper = addLevel(home, "Upper", 250, 250, 12);
+        home.setSelectedLevel(ground);
+        addWall(home, 0, 0, 400, 0);
+        addFurniture(home, "Table", 100, 100);
+        home.setSelectedLevel(upper);
+        addWall(home, 0, 0, 0, 300);
+        createCheckpoint("two levels");
+
+        Response resp = restoreWithIdAndForce(0, true);
+
+        assertTrue(resp.isOk(), resp.getMessage());
+        assertEquals("Upper", home.getSelectedLevel().getName());
+        for (Wall wall : home.getWalls()) {
+            assertTrue(home.getLevels().contains(wall.getLevel()));
+            assertEquals(wall.getXEnd() == 400 ? "Ground" : "Upper", wall.getLevel().getName());
+        }
+        assertEquals("Ground", home.getFurniture().get(0).getLevel().getName());
+    }
+
+    @Test
+    void testRestoredCheckpointIsNotChangedByLaterEdits() {
+        addWall(home, 0, 0, 400, 0);
+        createCheckpoint("original");
+        restoreWithIdAndForce(0, true);
+        home.getWalls().iterator().next().setXEnd(999);
+
+        Response resp = restoreWithIdAndForce(0, true);
+
+        assertTrue(resp.isOk(), resp.getMessage());
+        assertEquals(400, home.getWalls().iterator().next().getXEnd(), 0.01f);
+    }
+
+    @Test
+    void testRestoreKeepsObjectIds() {
+        Wall wall = addWall(home, 0, 0, 400, 0);
+        createCheckpoint("original");
+
+        restoreWithIdAndForce(0, true);
+
+        assertEquals(wall.getId(), home.getWalls().iterator().next().getId());
+    }
 
     private void createCheckpoint(String description) {
         checkpointHandler.execute(

@@ -6,12 +6,14 @@ import com.eteks.sweethome3d.io.HomeFileRecorder;
 import com.eteks.sweethome3d.model.Camera;
 import com.eteks.sweethome3d.model.Compass;
 import com.eteks.sweethome3d.model.DimensionLine;
+import com.eteks.sweethome3d.model.Elevatable;
 import com.eteks.sweethome3d.model.Home;
 import com.eteks.sweethome3d.model.HomeEnvironment;
 import com.eteks.sweethome3d.model.HomePieceOfFurniture;
 import com.eteks.sweethome3d.model.Label;
 import com.eteks.sweethome3d.model.Level;
 import com.eteks.sweethome3d.model.ObserverCamera;
+import com.eteks.sweethome3d.model.Polyline;
 import com.eteks.sweethome3d.model.RecorderException;
 import com.eteks.sweethome3d.model.Room;
 import com.eteks.sweethome3d.model.Wall;
@@ -28,6 +30,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import static com.sh3d.mcp.command.handler.TestFixtures.addDimensionLine;
+import static com.sh3d.mcp.command.handler.TestFixtures.addFurniture;
+import static com.sh3d.mcp.command.handler.TestFixtures.addLevel;
+import static com.sh3d.mcp.command.handler.TestFixtures.addRoom;
 import static com.sh3d.mcp.command.handler.TestFixtures.addWall;
 import static com.sh3d.mcp.command.handler.TestFixtures.createAccessor;
 import static org.junit.jupiter.api.Assertions.*;
@@ -380,6 +386,48 @@ class LoadHomeHandlerTest {
         assertTrue(home.getWalls().isEmpty());
         assertFalse(home.isModified());
         assertEquals(file, home.getName());
+    }
+
+    // --- Multi-level homes (#10) ---
+
+    @Test
+    void testLoadKeepsEveryObjectOnItsLevel(@TempDir Path dir) throws Exception {
+        Home source = new Home();
+        Level ground = addLevel(source, "Ground", 0, 250, 12);
+        Level upper = addLevel(source, "Upper", 250, 250, 12);
+        source.setSelectedLevel(ground);
+        addWall(source, 0, 0, 400, 0);
+        addRoom(source, 0, 0, 400, 300);
+        addFurniture(source, "Table", 100, 100);
+        source.addLabel(new Label("Kitchen", 50, 50));
+        addDimensionLine(source, 0, 0, 400, 0, 20);
+        source.addPolyline(new Polyline(new float[][] {{0, 0}, {100, 100}}));
+        source.setSelectedLevel(upper);
+        addWall(source, 0, 0, 0, 300);
+        String file = writeHome(source, dir.resolve("two-levels.sh3d"));
+        Home home = new Home();
+
+        Response resp = handler.execute(
+                new Request("load_home", Map.of("filePath", file)), createAccessor(home));
+
+        assertTrue(resp.isOk(), resp.getMessage());
+        assertEquals("Upper", home.getSelectedLevel().getName());
+        for (Wall wall : home.getWalls()) {
+            assertEquals(wall.getXEnd() == 400 ? "Ground" : "Upper", levelName(home, wall));
+        }
+        assertEquals("Ground", levelName(home, home.getRooms().get(0)));
+        assertEquals("Ground", levelName(home, home.getFurniture().get(0)));
+        assertEquals("Ground", levelName(home, home.getLabels().iterator().next()));
+        assertEquals("Ground", levelName(home, home.getDimensionLines().iterator().next()));
+        assertEquals("Ground", levelName(home, home.getPolylines().get(0)));
+    }
+
+    /** Name of the item's level, checking that the level belongs to the home. */
+    private static String levelName(Home home, Elevatable item) {
+        Level level = item.getLevel();
+        assertNotNull(level, "item has no level");
+        assertTrue(home.getLevels().contains(level), "level is not one of the home's levels");
+        return level.getName();
     }
 
     private static String writeHome(Home home, Path path) throws RecorderException {
