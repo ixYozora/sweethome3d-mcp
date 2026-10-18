@@ -9,3 +9,7 @@ target/
 # SweetHome3D.jar is excluded from git (46 MB).
 # Run scripts/setup-dev.sh (or setup-dev.bat) to obtain it before building.
 lib/SweetHome3D.jar
+
+# Local working folders: your Sweet Home 3D designs and reference photos
+designs/
+photos/
