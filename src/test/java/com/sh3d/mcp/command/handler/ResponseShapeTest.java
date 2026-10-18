@@ -136,7 +136,8 @@ class ResponseShapeTest {
     void getStateSections() {
         Map<String, Object> data = run(new GetStateHandler(), "get_state");
 
-        assertEquals(Arrays.asList("wallCount", "walls", "furnitureCount", "furniture", "roomCount", "rooms",
+        assertEquals(Arrays.asList("homeFile", "modified",
+                        "wallCount", "walls", "furnitureCount", "furniture", "roomCount", "rooms",
                         "labelCount", "labels", "dimensionLineCount", "dimensionLines", "camera",
                         "storedCameraCount", "storedCameras", "levelCount", "levels", "environment",
                         "boundingBox"),

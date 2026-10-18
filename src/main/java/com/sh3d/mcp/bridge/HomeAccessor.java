@@ -43,6 +43,14 @@ public class HomeAccessor {
         return userPreferences.getTexturesCatalog();
     }
 
+    /** Marks the home as modified (on the EDT), so Sweet Home 3D asks to save it on close. */
+    public void markModified() {
+        runOnEDT(() -> {
+            home.setModified(true);
+            return null;
+        });
+    }
+
     /**
      * Выполняет задачу в EDT (Event Dispatch Thread) и возвращает результат.
      * <p>

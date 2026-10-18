@@ -370,6 +370,20 @@ class GetStateHandlerTest {
         assertEquals(0, ((Number) items.get(1).get("sashes")).intValue());
     }
 
+    @Test
+    void testReportsHomeFileAndUnsavedChanges() {
+        Map<String, Object> unsaved = execute().getData();
+        assertNull(unsaved.get("homeFile"));
+        assertEquals(false, unsaved.get("modified"));
+
+        home.setName("/home/user/house.sh3d");
+        home.setModified(true);
+        Map<String, Object> data = execute().getData();
+
+        assertEquals("/home/user/house.sh3d", data.get("homeFile"));
+        assertEquals(true, data.get("modified"));
+    }
+
     private Response execute() {
         return handler.execute(new Request("get_state", Collections.emptyMap()), accessor);
     }

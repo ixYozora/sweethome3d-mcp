@@ -99,6 +99,12 @@ public class SaveHomeHandler implements CommandHandler, CommandDescriptor {
     }
 
     @Override
+    public boolean modifiesHome() {
+        // Sets the modified flag itself (cleared once saved)
+        return false;
+    }
+
+    @Override
     public String getDescription() {
         return "Saves the current home to a .sh3d file on disk. "
                 + "If filePath is provided, saves to that location (Save As). "

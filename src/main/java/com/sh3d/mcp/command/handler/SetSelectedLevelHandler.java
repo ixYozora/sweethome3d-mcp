@@ -50,6 +50,12 @@ public class SetSelectedLevelHandler implements CommandHandler, CommandDescripto
     }
 
     @Override
+    public boolean modifiesHome() {
+        // Sweet Home 3D does not treat selecting a level as a modification
+        return false;
+    }
+
+    @Override
     public String getDescription() {
         return "Sets the active (selected) level by its ID. "
                 + "All subsequent create commands (walls, rooms, furniture) will be placed on the selected level. "

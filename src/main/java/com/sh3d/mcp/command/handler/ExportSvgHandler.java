@@ -79,6 +79,11 @@ public class ExportSvgHandler implements CommandHandler, CommandDescriptor {
     }
 
     @Override
+    public boolean modifiesHome() {
+        return false;
+    }
+
+    @Override
     public String getDescription() {
         return "Exports the current 2D floor plan as SVG (Scalable Vector Graphics). "
                 + "Returns the SVG content as a string. Shows walls, furniture, rooms, labels, "

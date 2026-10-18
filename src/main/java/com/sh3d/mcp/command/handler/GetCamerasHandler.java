@@ -55,6 +55,11 @@ public class GetCamerasHandler implements CommandHandler, CommandDescriptor {
     }
 
     @Override
+    public boolean modifiesHome() {
+        return false;
+    }
+
+    @Override
     public String getDescription() {
         return "Returns all stored camera viewpoints (bookmarked views). "
                 + "Each camera has an id, name, position (x, y, z in cm), "

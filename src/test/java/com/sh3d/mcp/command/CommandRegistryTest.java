@@ -1,5 +1,6 @@
 package com.sh3d.mcp.command;
 
+import com.eteks.sweethome3d.model.Home;
 import com.sh3d.mcp.bridge.CommandException;
 import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.protocol.Request;
@@ -13,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 
 class CommandRegistryTest {
@@ -215,5 +217,65 @@ class CommandRegistryTest {
         List<String> warnings = (List<String>) resp.getData().get("_warnings");
         // The warning should only contain the "unknown" param, not "known"
         assertEquals("Unknown parameters ignored: [unknown]", warnings.get(0));
+    }
+
+    // --- Modified flag ---
+
+    @Test
+    void testModifyingCommandMarksHomeModified() {
+        Home home = new Home();
+        registry.register("change", (req, acc) -> Response.ok(Collections.emptyMap()));
+
+        registry.dispatch(new Request("change", Collections.emptyMap()), new HomeAccessor(home, null));
+
+        assertTrue(home.isModified());
+    }
+
+    @Test
+    void testReadOnlyCommandLeavesHomeUnmodified() {
+        Home home = new Home();
+        registry.register("look", readOnly((req, acc) -> Response.ok(Collections.emptyMap())));
+
+        registry.dispatch(new Request("look", Collections.emptyMap()), new HomeAccessor(home, null));
+
+        assertFalse(home.isModified());
+    }
+
+    @Test
+    void testFailedModifyingCommandStillMarksHomeModified() {
+        Home home = new Home();
+        registry.register("partial", (req, acc) -> {
+            throw new RuntimeException("failed halfway");
+        });
+
+        Response resp = registry.dispatch(
+                new Request("partial", Collections.emptyMap()), new HomeAccessor(home, null));
+
+        assertTrue(resp.isError());
+        assertTrue(home.isModified());
+    }
+
+    @Test
+    void testMarkModifiedFailureKeepsResponse() {
+        doThrow(new CommandException("EDT unavailable")).when(mockAccessor).markModified();
+
+        Response resp = registry.dispatch(new Request("ping", Collections.emptyMap()), mockAccessor);
+
+        assertTrue(resp.isOk());
+        assertEquals("0.1.0", resp.getData().get("version"));
+    }
+
+    private static CommandHandler readOnly(CommandHandler handler) {
+        return new CommandHandler() {
+            @Override
+            public Response execute(Request request, HomeAccessor accessor) {
+                return handler.execute(request, accessor);
+            }
+
+            @Override
+            public boolean modifiesHome() {
+                return false;
+            }
+        };
     }
 }

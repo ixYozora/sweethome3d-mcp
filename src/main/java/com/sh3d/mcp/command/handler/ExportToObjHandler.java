@@ -263,6 +263,11 @@ public class ExportToObjHandler implements CommandHandler, CommandDescriptor {
     }
 
     @Override
+    public boolean modifiesHome() {
+        return false;
+    }
+
+    @Override
     public String getDescription() {
         return "Exports the entire 3D scene to Wavefront OBJ format. "
                 + "Returns a base64-encoded ZIP archive containing the OBJ file, "

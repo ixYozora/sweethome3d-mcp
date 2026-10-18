@@ -11,11 +11,15 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Реестр команд: связывает имя action с обработчиком CommandHandler.
  */
 public class CommandRegistry {
+
+    private static final Logger LOG = Logger.getLogger(CommandRegistry.class.getName());
 
     private final Map<String, CommandHandler> handlers = new LinkedHashMap<>();
 
@@ -50,6 +54,19 @@ public class CommandRegistry {
             return Response.error(e.getMessage());
         } catch (Exception e) {
             return Response.error("Internal error: " + e.getMessage());
+        } finally {
+            // Also after errors: a failed command may have applied part of its changes
+            if (handler.modifiesHome()) {
+                markModified(accessor);
+            }
+        }
+    }
+
+    private static void markModified(HomeAccessor accessor) {
+        try {
+            accessor.markModified();
+        } catch (Exception e) {
+            LOG.log(Level.WARNING, "Could not mark home as modified", e);
         }
     }
 

@@ -51,6 +51,10 @@ public class GetStateHandler implements CommandHandler, CommandDescriptor {
             Home home = accessor.getHome();
             Map<String, Object> result = new LinkedHashMap<>();
 
+            // --- Home file: path (null until first saved) and unsaved changes ---
+            result.put("homeFile", home.getName());
+            result.put("modified", home.isModified());
+
             // --- Walls ---
             List<Object> wallList = buildWalls(home.getWalls());
             result.put("wallCount", wallList.size());
@@ -223,11 +227,18 @@ public class GetStateHandler implements CommandHandler, CommandDescriptor {
     // --- Descriptor ---
 
     @Override
+    public boolean modifiesHome() {
+        return false;
+    }
+
+    @Override
     public String getDescription() {
         return "Returns the full state of the Sweet Home 3D scene: walls with coordinates, "
                 + "furniture with positions and IDs, rooms with polygons, labels, dimension lines, "
                 + "camera settings, environment (ground, sky, light, wallsAlpha, drawingMode), "
-                + "and levels. Each object has a stable string 'id' field that can be "
+                + "and levels, plus 'homeFile' (path of the saved .sh3d, null if never saved) and "
+                + "'modified' (true if there are unsaved changes). "
+                + "Each object has a stable string 'id' field that can be "
                 + "used in subsequent commands (delete, modify, etc.). Always call this before "
                 + "making changes to understand the current scene.";
     }

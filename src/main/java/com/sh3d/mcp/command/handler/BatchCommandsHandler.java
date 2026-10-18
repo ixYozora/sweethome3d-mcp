@@ -132,6 +132,12 @@ public class BatchCommandsHandler implements CommandHandler, CommandDescriptor {
     }
 
     @Override
+    public boolean modifiesHome() {
+        // Sub-commands go through CommandRegistry.dispatch, which marks the home for each
+        return false;
+    }
+
+    @Override
     public String getDescription() {
         return "Executes multiple commands in a single request. "
                 + "All commands run sequentially; failures do not stop execution. "

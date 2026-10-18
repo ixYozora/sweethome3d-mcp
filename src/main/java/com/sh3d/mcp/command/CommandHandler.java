@@ -20,4 +20,16 @@ public interface CommandHandler {
      * @return ответ (ok + data, либо error + message)
      */
     Response execute(Request request, HomeAccessor accessor);
+
+    /**
+     * Whether this command can change the home model.
+     * <p>
+     * Sweet Home 3D only marks a home as modified when a change goes through its undo
+     * support, and handlers change the model directly. {@link CommandRegistry} therefore
+     * marks the home modified after every command that returns {@code true}, so that
+     * closing Sweet Home 3D asks to save. Read-only commands override this with {@code false}.
+     */
+    default boolean modifiesHome() {
+        return true;
+    }
 }

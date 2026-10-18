@@ -58,6 +58,11 @@ public class ListCategoriesHandler implements CommandHandler, CommandDescriptor 
     }
 
     @Override
+    public boolean modifiesHome() {
+        return false;
+    }
+
+    @Override
     public String getDescription() {
         return "Lists all furniture catalog categories with item counts. "
                 + "RECOMMENDED first step before browsing furniture — "

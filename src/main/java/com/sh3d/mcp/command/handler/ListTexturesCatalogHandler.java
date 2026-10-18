@@ -85,6 +85,11 @@ public class ListTexturesCatalogHandler implements CommandHandler, CommandDescri
     }
 
     @Override
+    public boolean modifiesHome() {
+        return false;
+    }
+
+    @Override
     public String getDescription() {
         return "Lists available textures in the Sweet Home 3D catalog. "
                 + "Can filter by name query and/or category. "

@@ -675,6 +675,11 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
     // --- Descriptor ---
 
     @Override
+    public boolean modifiesHome() {
+        return false;
+    }
+
+    @Override
     public String getDescription() {
         return "Renders a 3D photo of the current scene using ray-tracing (Sunflow). "
                 + "Returns images as native MCP image content (JPEG by default for compact size). "

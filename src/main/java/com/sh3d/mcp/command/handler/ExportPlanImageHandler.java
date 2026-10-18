@@ -152,6 +152,11 @@ public class ExportPlanImageHandler implements CommandHandler, CommandDescriptor
     }
 
     @Override
+    public boolean modifiesHome() {
+        return false;
+    }
+
+    @Override
     public String getDescription() {
         return "Exports the current 2D floor plan as a PNG image (base64-encoded). "
                 + "Much faster than render_photo — returns the plan view as seen in the editor, "

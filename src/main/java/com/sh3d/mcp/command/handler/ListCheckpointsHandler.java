@@ -44,6 +44,11 @@ public class ListCheckpointsHandler implements CommandHandler, CommandDescriptor
     }
 
     @Override
+    public boolean modifiesHome() {
+        return false;
+    }
+
+    @Override
     public String getDescription() {
         return "Returns all saved checkpoints with their IDs, descriptions, and timestamps. "
                 + "The 'current' field marks the checkpoint that was last restored "

@@ -50,6 +50,11 @@ public class ListLevelsHandler implements CommandHandler, CommandDescriptor {
     }
 
     @Override
+    public boolean modifiesHome() {
+        return false;
+    }
+
+    @Override
     public String getDescription() {
         return "Returns all levels (floors) in the home with their properties. "
                 + "Each level has: id (index), name, elevation, height, floorThickness, viewable, "

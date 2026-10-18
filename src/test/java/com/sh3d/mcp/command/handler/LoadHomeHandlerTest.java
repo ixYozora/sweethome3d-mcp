@@ -2,6 +2,7 @@ package com.sh3d.mcp.command.handler;
 import com.sh3d.mcp.command.CommandHandler;
 import com.sh3d.mcp.command.CommandDescriptor;
 
+import com.eteks.sweethome3d.io.HomeFileRecorder;
 import com.eteks.sweethome3d.model.Camera;
 import com.eteks.sweethome3d.model.Compass;
 import com.eteks.sweethome3d.model.DimensionLine;
@@ -11,6 +12,7 @@ import com.eteks.sweethome3d.model.HomePieceOfFurniture;
 import com.eteks.sweethome3d.model.Label;
 import com.eteks.sweethome3d.model.Level;
 import com.eteks.sweethome3d.model.ObserverCamera;
+import com.eteks.sweethome3d.model.RecorderException;
 import com.eteks.sweethome3d.model.Room;
 import com.eteks.sweethome3d.model.Wall;
 import com.sh3d.mcp.bridge.HomeAccessor;
@@ -18,12 +20,15 @@ import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import static com.sh3d.mcp.command.handler.TestFixtures.addWall;
 import static com.sh3d.mcp.command.handler.TestFixtures.createAccessor;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -341,5 +346,44 @@ class LoadHomeHandlerTest {
         assertEquals(500, target.getTopCamera().getX(), 0.01f);
         assertEquals(300, target.getTopCamera().getY(), 0.01f);
         assertEquals(1200, target.getTopCamera().getZ(), 0.01f);
+    }
+
+    // --- Unsaved changes guard ---
+
+    @Test
+    void testLoadRefusesToDiscardUnsavedChanges(@TempDir Path dir) throws Exception {
+        String file = writeHome(new Home(), dir.resolve("other.sh3d"));
+        Home home = new Home();
+        addWall(home, 0, 0, 100, 0);
+        home.setModified(true);
+
+        Response resp = handler.execute(
+                new Request("load_home", Map.of("filePath", file)), createAccessor(home));
+
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains("unsaved changes"));
+        assertEquals(1, home.getWalls().size());
+    }
+
+    @Test
+    void testLoadWithDiscardChangesReplacesModifiedHome(@TempDir Path dir) throws Exception {
+        String file = writeHome(new Home(), dir.resolve("empty.sh3d"));
+        Home home = new Home();
+        addWall(home, 0, 0, 100, 0);
+        home.setModified(true);
+
+        Response resp = handler.execute(
+                new Request("load_home", Map.of("filePath", file, "discardChanges", true)),
+                createAccessor(home));
+
+        assertTrue(resp.isOk(), resp.getMessage());
+        assertTrue(home.getWalls().isEmpty());
+        assertFalse(home.isModified());
+        assertEquals(file, home.getName());
+    }
+
+    private static String writeHome(Home home, Path path) throws RecorderException {
+        new HomeFileRecorder().writeHome(home, path.toString());
+        return path.toString();
     }
 }

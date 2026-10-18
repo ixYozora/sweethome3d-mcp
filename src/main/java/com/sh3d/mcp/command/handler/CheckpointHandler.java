@@ -76,6 +76,11 @@ public class CheckpointHandler implements CommandHandler, CommandDescriptor {
     }
 
     @Override
+    public boolean modifiesHome() {
+        return false;
+    }
+
+    @Override
     public String getDescription() {
         return "Creates an in-memory snapshot of the current scene for quick rollback. "
                 + "Call this BEFORE making a block of changes so the user can undo them instantly. "

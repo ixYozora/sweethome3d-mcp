@@ -61,6 +61,13 @@ public class LoadHomeHandler implements CommandHandler, CommandDescriptor {
             return Response.error("File is not readable: " + normalizedPath);
         }
 
+        // Loading replaces the scene without a checkpoint: don't silently drop unsaved work
+        boolean discardChanges = Boolean.TRUE.equals(request.getBoolean("discardChanges"));
+        if (!discardChanges && accessor.runOnEDT(() -> accessor.getHome().isModified())) {
+            return Response.error("The current home has unsaved changes. Save them first with "
+                    + "save_home, or pass discardChanges=true to replace them.");
+        }
+
         // 4. Чтение файла вне EDT
         Home loaded;
         try {
@@ -227,12 +234,19 @@ public class LoadHomeHandler implements CommandHandler, CommandDescriptor {
     // --- Descriptor ---
 
     @Override
+    public boolean modifiesHome() {
+        // Sets the modified flag itself (cleared: the home now matches the file)
+        return false;
+    }
+
+    @Override
     public String getDescription() {
         return "Loads a .sh3d file from disk, replacing the current scene with the file contents. "
                 + "This is the inverse of save_home. All current objects (walls, furniture, rooms, "
                 + "labels, dimension lines, levels) are removed and replaced with the contents of "
                 + "the loaded file. Camera positions, environment settings, and stored cameras "
-                + "are also restored. The home name is set to the loaded file path.";
+                + "are also restored. The home name is set to the loaded file path. "
+                + "Refuses if the current home has unsaved changes, unless discardChanges=true.";
     }
 
     @Override
@@ -241,6 +255,9 @@ public class LoadHomeHandler implements CommandHandler, CommandDescriptor {
                 .requiredString("filePath",
                         "Absolute path to the .sh3d file to load. "
                                 + "The file must exist and be readable.")
+                .boolWithDefault("discardChanges",
+                        "Replace the current home even if it has unsaved changes.",
+                        false)
                 .build();
     }
 }

@@ -100,6 +100,11 @@ public class ListFurnitureCatalogHandler implements CommandHandler, CommandDescr
     }
 
     @Override
+    public boolean modifiesHome() {
+        return false;
+    }
+
+    @Override
     public String getDescription() {
         return "Lists furniture in the Sweet Home 3D catalog. "
                 + "Can filter by name query, category, and/or type (furniture vs doors/windows). "
