@@ -17,12 +17,16 @@ on top of upstream `main` at `c76bbc6`. Everything under "Unreleased" and below 
 - `restore_checkpoint` restores a copy of the checkpoint. It used to put the checkpoint's own objects into the scene, so later edits changed the checkpoint too.
 - `list_levels` reports the stable level IDs that `set_selected_level` and `delete_level` accept, not list positions. (#9)
 - `render_photo` truncates an existing JPEG file before writing; a smaller new image used to keep the previous image's tail. (#11)
+- `render_photo` no longer runs past the client's tool-call timeout. A render that takes longer than 45 s answers with `status: "rendering"` and the `filePaths` it will write, and keeps rendering in the background; an inline render is then saved to `<tmp>/sh3d-mcp-renders/` instead. Medium-quality and 4-angle renders used to time out on the client while the plugin kept rendering, and the inline result was lost. Renders run one at a time on a background thread.
+- `render_photo` and `export_plan_image` replace an image extension that does not match the format instead of appending a second one: `ov.jpg` saved as PNG is `ov.png` (as `ov_1.png` … for 4 angles), not `ov.jpg.png`; `shot.jpeg` saved as JPEG stays `shot.jpeg` instead of becoming `shot.jpeg.jpg`.
 - `add_level` on a home that has content but no levels yet puts that content on a ground level, as Sweet Home 3D's own Add level does: the new level if its elevation is 0, otherwise a new "Level 0". The content used to be left without a level, drawn on every floor.
 
 ### Added
 - `get_state` reports `homeFile` (null until saved) and `modified`.
 - `load_home` refuses to replace a home with unsaved changes unless `discardChanges` is true.
 - `modify_furniture` accepts `power` (0 to 1) for lights; furniture results report `power` for lights.
+- `modify_label` — change a label's text, position, rotation, colors, font style (size, bold, italic, alignment; only what is given) or 3D elevation and pitch by ID. Invalid values are rejected before anything changes.
+- `delete_label` — remove a label by ID. Labels could only be added before, so fixing one meant restoring a checkpoint.
 
 ### Build
 - Maven profile `system-sh3d`, activated by the Debian/Ubuntu `sweethome3d` package: compiles against the installed Sweet Home 3D jar and the system Java3D 1.5.2 it runs with.

@@ -30,6 +30,9 @@ Debian/Ubuntu `sweethome3d` 7.5 package on this laptop, which runs it on Java 25
 - Ambiguous catalog names ("door" matches 3 items) need a `catalogId` from `list_furniture_catalog`.
 - Lights come from the Lights category; brightness is `modify_furniture` `power` (0-1, default 0.5).
 - `render_photo` and `export_plan_image` return images inline. Low quality, 800x600: ~5 s.
+  A render over 45 s answers `status: "rendering"` with `filePaths` and finishes in the background;
+  read the files once they exist. Medium quality or 4 angles of a full plan typically take that long.
+- Labels: `modify_label` / `delete_label` by ID. A multi-line label grows upward from its `y`.
 - Catalog: 920 pieces (100 built-in + 820 from `sweethome3d-furniture`), only 26 textures.
 - The GUI shows imperial units (en_US locale) unless changed in Preferences; model data is always cm.
 - `photos/` holds the user's reference photos, `designs/` their `.sh3d` files (both gitignored).
