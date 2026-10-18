@@ -28,6 +28,7 @@ import com.sh3d.mcp.bridge.PathValidator;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import com.sh3d.mcp.command.util.SchemaBuilder;
@@ -620,9 +621,12 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
      * Записывает изображение в указанном формате (png/jpeg).
      * JPEG записывается с quality {@link #JPEG_QUALITY}.
      */
-    private static void writeImage(BufferedImage image, String format, File file) throws Exception {
+    static void writeImage(BufferedImage image, String format, File file) throws Exception {
         if ("jpeg".equals(format)) {
-            try (ImageOutputStream ios = ImageIO.createImageOutputStream(file)) {
+            // Files.newOutputStream truncates an existing file. ImageIO.createImageOutputStream(File)
+            // writes over it in place and leaves the old image's tail if the new one is smaller.
+            try (OutputStream out = Files.newOutputStream(file.toPath());
+                 ImageOutputStream ios = new MemoryCacheImageOutputStream(out)) {
                 writeJpeg(ensureRgb(image), ios);
             }
         } else {

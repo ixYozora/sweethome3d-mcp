@@ -15,12 +15,18 @@ import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import static com.sh3d.mcp.command.handler.TestFixtures.createAccessor;
 import static org.junit.jupiter.api.Assertions.*;
@@ -1020,5 +1026,34 @@ class RenderPhotoHandlerTest {
     private static SceneBounds createTestBounds(
             float minX, float minY, float maxX, float maxY, float maxZ) {
         return SceneBounds.of(minX, minY, maxX, maxY, maxZ);
+    }
+
+    // --- Writing to an existing file (#11) ---
+
+    @Test
+    void testJpegOverwriteLeavesNoStaleBytes(@TempDir Path dir) throws Exception {
+        File file = dir.resolve("render.jpg").toFile();
+        RenderPhotoHandler.writeImage(noise(800, 600), "jpeg", file);
+        long firstSize = file.length();
+        BufferedImage small = noise(160, 120);
+        File fresh = dir.resolve("fresh.jpg").toFile();
+        RenderPhotoHandler.writeImage(small, "jpeg", fresh);
+
+        RenderPhotoHandler.writeImage(small, "jpeg", file);
+
+        assertTrue(fresh.length() < firstSize);
+        assertArrayEquals(Files.readAllBytes(fresh.toPath()), Files.readAllBytes(file.toPath()));
+    }
+
+    /** Random pixels: compress badly, so the first JPEG is much larger than the second. */
+    private static BufferedImage noise(int width, int height) {
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        Random random = new Random(42);
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                image.setRGB(x, y, random.nextInt(0x1000000));
+            }
+        }
+        return image;
     }
 }
