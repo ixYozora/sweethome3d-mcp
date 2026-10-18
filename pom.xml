@@ -217,12 +217,10 @@
             </properties>
         </profile>
 
-        <!-- Deploy .sh3p to local SH3D plugins dir: ./mvnw package -Pdeploy-local -->
+        <!-- Deploy .sh3p to local SH3D plugins dir: ./mvnw package -Pdeploy-local
+             (folder from the plugins-dir-* profile for this OS, or -Dsh3d.plugins.dir=...) -->
         <profile>
             <id>deploy-local</id>
-            <properties>
-                <sh3d.plugins.dir>${user.home}/AppData/Roaming/eTeks/Sweet Home 3D/plugins</sh3d.plugins.dir>
-            </properties>
             <build>
                 <plugins>
                     <plugin>
@@ -246,6 +244,29 @@
                     </plugin>
                 </plugins>
             </build>
+        </profile>
+
+        <!-- Sweet Home 3D plugins folder per OS, used by deploy-local -->
+        <profile>
+            <id>plugins-dir-windows</id>
+            <activation><os><family>windows</family></os></activation>
+            <properties>
+                <sh3d.plugins.dir>${user.home}/AppData/Roaming/eTeks/Sweet Home 3D/plugins</sh3d.plugins.dir>
+            </properties>
+        </profile>
+        <profile>
+            <id>plugins-dir-mac</id>
+            <activation><os><family>mac</family></os></activation>
+            <properties>
+                <sh3d.plugins.dir>${user.home}/Library/Application Support/eTeks/Sweet Home 3D/plugins</sh3d.plugins.dir>
+            </properties>
+        </profile>
+        <profile>
+            <id>plugins-dir-linux</id>
+            <activation><os><name>linux</name></os></activation>
+            <properties>
+                <sh3d.plugins.dir>${user.home}/.eteks/sweethome3d/plugins</sh3d.plugins.dir>
+            </properties>
         </profile>
     </profiles>
 </project>

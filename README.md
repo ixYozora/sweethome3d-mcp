@@ -55,7 +55,7 @@ it does not exist:
 |----|----------------|
 | Windows | `%APPDATA%\eTeks\Sweet Home 3D\plugins\` |
 | macOS | `~/Library/Application Support/eTeks/Sweet Home 3D/plugins/` |
-| Linux | `~/.sweethome3d/plugins/` |
+| Linux | `~/.eteks/sweethome3d/plugins/` |
 
 **Step 3.** (Re)start Sweet Home 3D. The MCP server starts automatically on port `9877`.
 
@@ -268,6 +268,13 @@ cd sweethome3d-mcp-server
 > The script first checks your local Sweet Home 3D installation (fastest, works offline),
 > then falls back to downloading from SourceForge.
 > The three Java3D JARs (`j3dcore`, `j3dutils`, `vecmath`) are included in `lib/` directly.
+>
+> **Debian / Ubuntu package** (`apt install sweethome3d`): no setup script needed. The
+> `system-sh3d` Maven profile switches on by itself and builds against the installed
+> Sweet Home 3D and the system Java3D 1.5.2 it runs with.
+>
+> `./mvnw package -Pdeploy-local` also copies the plugin into your plugins folder
+> (per OS, see the table above; override with `-Dsh3d.plugins.dir=...`).
 
 ## Architecture
 

@@ -61,11 +61,17 @@ mvn test
 ### 5. Deploy to Sweet Home 3D (optional)
 
 ```bash
-# Linux / macOS
-cp target/sh3d-mcp-plugin-1.0.0.sh3p ~/.sweethome3d/plugins/
+# Any OS: build and copy into the plugins folder in one step
+./mvnw package -Pdeploy-local
+
+# Linux
+cp target/sh3d-mcp-plugin-*.sh3p ~/.eteks/sweethome3d/plugins/
+
+# macOS
+cp target/sh3d-mcp-plugin-*.sh3p ~/Library/Application\ Support/eTeks/Sweet\ Home\ 3D/plugins/
 
 # Windows (Git Bash)
-cp target/sh3d-mcp-plugin-1.0.0.sh3p "$APPDATA/eTeks/Sweet Home 3D/plugins/"
+cp target/sh3d-mcp-plugin-*.sh3p "$APPDATA/eTeks/Sweet Home 3D/plugins/"
 ```
 
 Restart Sweet Home 3D. The plugin activates automatically and starts the MCP server on port 9877.

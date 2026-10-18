@@ -30,6 +30,7 @@ INSTALL_PATHS=(
   "$HOME/Applications/Sweet Home 3D.app/Contents/Resources/Java/SweetHome3D.jar"
   "/Applications/Sweet Home 3D.app/Contents/Resources/Java/SweetHome3D.jar"
   "/usr/share/sweethome3d/SweetHome3D.jar"
+  "/usr/share/sweethome3d/sweethome3d.jar"   # Debian / Ubuntu package
   "/opt/sweethome3d/SweetHome3D.jar"
 )
 
