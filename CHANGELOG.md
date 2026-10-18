@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Fork changes - 2026-10-19
+
+Changes made in this fork ([ixYozora/sweethome3d-mcp](https://github.com/ixYozora/sweethome3d-mcp))
+on top of upstream `main` at `c76bbc6`. Everything under "Unreleased" and below is upstream's.
+
+### Fixed
+- Edits made through MCP now mark the home as modified, so closing Sweet Home 3D asks to save it. Sweet Home 3D only sets that flag for changes made through its undo support, so the plugin's direct changes left the home looking unmodified and the work could be lost. Read-only commands leave the flag alone.
+- Catalog lights placed with `place_furniture` are real lights (`HomeLight`) with their light sources, so they light rendered photos; shelf units keep their shelves. (#13)
+- `load_home` and `restore_checkpoint` keep every object on its level. In multi-level homes, objects used to end up on the selected level or on none. (#10)
+- `restore_checkpoint` restores a copy of the checkpoint. It used to put the checkpoint's own objects into the scene, so later edits changed the checkpoint too.
+- `list_levels` reports the stable level IDs that `set_selected_level` and `delete_level` accept, not list positions. (#9)
+- `render_photo` truncates an existing JPEG file before writing; a smaller new image used to keep the previous image's tail. (#11)
+- `add_level` on a home that has content but no levels yet puts that content on a ground level, as Sweet Home 3D's own Add level does: the new level if its elevation is 0, otherwise a new "Level 0". The content used to be left without a level, drawn on every floor.
+
+### Added
+- `get_state` reports `homeFile` (null until saved) and `modified`.
+- `load_home` refuses to replace a home with unsaved changes unless `discardChanges` is true.
+- `modify_furniture` accepts `power` (0 to 1) for lights; furniture results report `power` for lights.
+
+### Build
+- Maven profile `system-sh3d`, activated by the Debian/Ubuntu `sweethome3d` package: compiles against the installed Sweet Home 3D jar and the system Java3D 1.5.2 it runs with.
+- JaCoCo 0.8.14, which supports JDK 25.
+- `-Pdeploy-local` copies the plugin to the plugins folder of the current OS (it was the Windows folder everywhere).
+
+### Documentation
+- The Linux plugins folder is `~/.eteks/sweethome3d/plugins/`, not `~/.sweethome3d/plugins/`.
+
 ## [Unreleased]
 
 ### Added

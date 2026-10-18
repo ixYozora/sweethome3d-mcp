@@ -4,6 +4,11 @@
 [![Java 11+](https://img.shields.io/badge/Java-11%2B-orange.svg)](https://adoptium.net/)
 [![Sweet Home 3D 6.0+](https://img.shields.io/badge/Sweet_Home_3D-6.0%2B-green.svg)](https://www.sweethome3d.com/)
 
+> **This is a fork** of [grimashevich/sweethome3d-mcp-server](https://github.com/grimashevich/sweethome3d-mcp-server)
+> (GPL v2), modified in October 2026 with bug fixes and support for building against the
+> Debian/Ubuntu `sweethome3d` package on Java 25. See [Fork changes](CHANGELOG.md#fork-changes---2026-10-19)
+> in the changelog. The rest of this README is the upstream documentation.
+
 A plugin for [Sweet Home 3D](https://www.sweethome3d.com/) that embeds an MCP (Model Context Protocol) server directly inside the application. Lets Claude and other AI assistants control Sweet Home 3D over HTTP — create walls, place furniture, render photos, and more — without any external proxy or separate server process.
 
 ```

@@ -1,7 +1,9 @@
 # Sweet Home 3D MCP (local fork)
 
 Fork of [grimashevich/sweethome3d-mcp-server](https://github.com/grimashevich/sweethome3d-mcp-server)
-(remote `upstream`; our work is on branch `local`, see `git log upstream/main..local`).
+(remote `upstream`), published as [ixYozora/sweethome3d-mcp](https://github.com/ixYozora/sweethome3d-mcp)
+(remote `origin`, public). Our changes: `git log upstream/main..main`; list them in CHANGELOG.md
+under "Fork changes".
 It is a Sweet Home 3D plugin that runs an MCP server inside the app. Installed for the
 Debian/Ubuntu `sweethome3d` 7.5 package on this laptop, which runs it on Java 25.
 
