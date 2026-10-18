@@ -25,6 +25,10 @@
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- Compile-time jars; the system-sh3d profile repoints them at a distro install -->
+        <sh3d.jar>${project.basedir}/lib/SweetHome3D.jar</sh3d.jar>
+        <j3d.lib.dir>${project.basedir}/lib</j3d.lib.dir>
+        <j3d.test.argLine></j3d.test.argLine>
     </properties>
 
     <dependencies>
@@ -34,7 +38,7 @@
             <artifactId>sweethome3d</artifactId>
             <version>7.5</version>
             <scope>system</scope>
-            <systemPath>${project.basedir}/lib/SweetHome3D.jar</systemPath>
+            <systemPath>${sh3d.jar}</systemPath>
         </dependency>
 
         <!-- Java 3D (provided — already in SH3D classpath at runtime, needed for compile only) -->
@@ -43,21 +47,21 @@
             <artifactId>j3dcore</artifactId>
             <version>1.6</version>
             <scope>system</scope>
-            <systemPath>${project.basedir}/lib/j3dcore.jar</systemPath>
+            <systemPath>${j3d.lib.dir}/j3dcore.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>javax.media</groupId>
             <artifactId>j3dutils</artifactId>
             <version>1.6</version>
             <scope>system</scope>
-            <systemPath>${project.basedir}/lib/j3dutils.jar</systemPath>
+            <systemPath>${j3d.lib.dir}/j3dutils.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>javax.vecmath</groupId>
             <artifactId>vecmath</artifactId>
             <version>1.6</version>
             <scope>system</scope>
-            <systemPath>${project.basedir}/lib/vecmath.jar</systemPath>
+            <systemPath>${j3d.lib.dir}/vecmath.jar</systemPath>
         </dependency>
 
         <!-- Tests -->
@@ -149,6 +153,7 @@
                     <!-- @{argLine} is late-bound by JaCoCo prepare-agent; JDK 24 flags follow -->
                     <argLine>
                         @{argLine}
+                        ${j3d.test.argLine}
                         -XX:+EnableDynamicAgentLoading
                         --add-opens java.base/java.lang=ALL-UNNAMED
                         --add-opens java.base/java.lang.reflect=ALL-UNNAMED
@@ -160,7 +165,7 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.12</version>
+                <version>0.8.14</version>
                 <executions>
                     <execution>
                         <id>prepare-agent</id>
@@ -196,6 +201,22 @@
     </build>
 
     <profiles>
+        <!-- Debian/Ubuntu package (apt install sweethome3d): compile against the installed
+             SweetHome3D jar and the system Java3D 1.5.2 it actually runs with,
+             instead of lib/SweetHome3D.jar and the Java3D 1.6 jars in lib/ -->
+        <profile>
+            <id>system-sh3d</id>
+            <activation>
+                <file><exists>/usr/share/sweethome3d/sweethome3d.jar</exists></file>
+            </activation>
+            <properties>
+                <sh3d.jar>/usr/share/sweethome3d/sweethome3d.jar</sh3d.jar>
+                <j3d.lib.dir>/usr/share/java</j3d.lib.dir>
+                <!-- Java3D 1.5.2 is JNI-based; the sweethome3d launcher passes the same path -->
+                <j3d.test.argLine>-Djava.library.path=/usr/lib/jni</j3d.test.argLine>
+            </properties>
+        </profile>
+
         <!-- Deploy .sh3p to local SH3D plugins dir: ./mvnw package -Pdeploy-local -->
         <profile>
             <id>deploy-local</id>
